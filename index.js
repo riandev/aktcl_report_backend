@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const _ = require("lodash");
 require("dotenv").config();
 const ObjectID = require("mongodb").ObjectID;
 const bodyParser = require("body-parser");
@@ -12,6 +13,7 @@ app.use(bodyParser.json());
 const port = 5002;
 
 const MongoClient = require("mongodb").MongoClient;
+const { sum } = require("lodash");
 const uri = "mongodb://127.0.0.1:27017/aktcl_report";
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -20,6 +22,12 @@ const client = new MongoClient(uri, {
 client.connect((err) => {
   //   const reportsCollection = client.db("aktcl_report").collection("reports");
   const finalReport = client.db("aktcl_report").collection("final_report");
+  const territoryReport = client
+    .db("aktcl_report")
+    .collection("territory_Report");
+  const questionResult = client
+    .db("aktcl_report")
+    .collection("question_result");
   console.log("user Connection");
 
   app.get("/updateConnectCall", (req, res) => {
@@ -298,9 +306,7 @@ client.connect((err) => {
       .aggregate([
         {
           $match: {
-            $or: [
-              { falseContactFinal: 1 },
-            ],
+            $or: [{ falseContactFinal: 1 }],
           },
         },
       ])
@@ -313,7 +319,7 @@ client.connect((err) => {
       .aggregate([
         {
           $match: {
-            $and: [{ trueContact: 1 }, { falseContact: 1 }],
+            $and: [{ trueContact: 1 }, { falseContactFinal: 1 }],
           },
         },
       ])
@@ -405,6 +411,311 @@ client.connect((err) => {
   app.get("/finalReport", (req, res) => {
     finalReport.find({}).toArray((err, finalReport) => {
       res.send(finalReport);
+    });
+  });
+  app.get("/analyze_import", async (req, res) => {
+    async function analyzeData() {
+      let result = [];
+      let valid_total = 0;
+      let connected_total = 0;
+      let true_total = 0;
+      let notConnected_total = 0;
+      let noSOB1_total = 0;
+      let nonSOB2_total = 0;
+      let extMSB_total = 0;
+      let falseContact_total = 0;
+      let noFreeSample_total = 0;
+      let lessFreeSample_total = 0;
+      let teaSnaks_total = 0;
+      let retention_total = 0;
+      try {
+        let data = await finalReport.find({}).toArray();
+        let users = _.groupBy(JSON.parse(JSON.stringify(data)), function (d) {
+          return d.TM_USER_NAME;
+        });
+        for (user in users) {
+          result.push({
+            userId: user,
+            userName: users[user][0].TM_NAME,
+            teritory: users[user][0].TERITORY_NAME,
+            valid_Data_count: users[user].filter(
+              (x) => x.data_status === "Valid_Data"
+            ).length,
+            connected_Call_count: users[user].filter(
+              (x) => x.connectedCall === 1
+            ).length,
+            true_Contact_count: users[user].filter((x) => x.trueContact === 1)
+              .length,
+            not_Contacted_count: users[user].filter((x) => x.notContacted === 1)
+              .length,
+            non_SOB1_count: users[user].filter((x) => x.nonSOB1 === 1).length,
+            non_SOB2_count: users[user].filter((x) => x.nonSOB2_Final === 1)
+              .length,
+            ext_MSB_count: users[user].filter((x) => x.extMSB === 1).length,
+            false_Contact_count: users[user].filter(
+              (x) => x.falseContactFinal === 1
+            ).length,
+            no_Free_Sample: users[user].filter((x) => x.noFreeSample === 1)
+              .length,
+            less_Free_Sample: users[user].filter((x) => x.lessFreeSample === 1)
+              .length,
+            teaSnaks: users[user].filter((x) => x.teaSnaks === 1).length,
+            retention: users[user].filter((x) => x.retention === 1).length,
+            target: 50,
+          });
+          valid_total += users[user].filter(
+            (x) => x.data_status === "Valid_Data"
+          ).length;
+          connected_total += users[user].filter(
+            (x) => x.connectedCall === 1
+          ).length;
+          true_total += users[user].filter((x) => x.trueContact === 1).length;
+          notConnected_total += users[user].filter(
+            (x) => x.notContacted === 1
+          ).length;
+          noSOB1_total += users[user].filter((x) => x.nonSOB1 === 1).length;
+          nonSOB2_total += users[user].filter(
+            (x) => x.nonSOB2_Final === 1
+          ).length;
+          extMSB_total += users[user].filter((x) => x.extMSB === 1).length;
+          falseContact_total += users[user].filter(
+            (x) => x.falseContactFinal === 1
+          ).length;
+          noFreeSample_total += users[user].filter(
+            (x) => x.noFreeSample === 1
+          ).length;
+          lessFreeSample_total += users[user].filter(
+            (x) => x.lessFreeSample === 1
+          ).length;
+          teaSnaks_total += users[user].filter((x) => x.teaSnaks === 1).length;
+          retention_total += users[user].filter(
+            (x) => x.retention === 1
+          ).length;
+        }
+        console.log("Total Data", data.length);
+        console.log("Unique Users", result);
+        result = result.map((r) => {
+          return {
+            ...r,
+            valid_total,
+            connected_total,
+            true_total,
+            notConnected_total,
+            noSOB1_total,
+            nonSOB2_total,
+            extMSB_total,
+            falseContact_total,
+            noFreeSample_total,
+            lessFreeSample_total,
+            teaSnaks_total,
+            retention_total,
+          };
+        });
+        insertResult(result);
+      } catch (e) {
+        console.log(e.message);
+      }
+    }
+
+    async function insertResult(data) {
+      try {
+        await questionResult.remove({});
+        await questionResult.insertMany(JSON.parse(JSON.stringify(data)));
+        console.log("Inserted");
+        res.send(`
+        <h1>Imported Successfully.</h1>
+        <h3> Please Check your DB</h3>
+        `);
+      } catch (e) {
+        res.send("Error", e.message);
+      }
+    }
+    analyzeData();
+  });
+  //Teritorry Reports
+  app.get("/analyze_teritorry", async (req, res) => {
+    async function analyzeData() {
+      let territoryResult = [];
+
+      let grandConnectedCall = 0;
+      let grandTarget = 0;
+      let grandValiddata = 0;
+      let grandTrueContact = 0;
+      let grandNotContacted = 0;
+      let grandNonSOB1 = 0;
+      let grandNonSOB2 = 0;
+      let grandextMSB = 0;
+      let grandFalseContact = 0;
+      let grandNoFreeSample = 0;
+      let grandLessFreeSample = 0;
+      let grandTeaSnaks = 0;
+      let grandRetention = 0;
+      try {
+        let data = await questionResult.find({}).toArray();
+        let territories = _.groupBy(
+          JSON.parse(JSON.stringify(data)),
+          function (d) {
+            return d.teritory;
+          }
+        );
+        for (territory in territories) {
+          territoryResult.push({
+            userId: territory,
+            sumConnectedCall: territories[territory]
+              .filter((x) => x.connected_Call_count)
+              .map((x) => Number(x.connected_Call_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumTarget: territories[territory]
+              .filter((x) => x.target)
+              .map((x) => Number(x.target))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumValiddata: territories[territory]
+              .filter((x) => x.valid_Data_count)
+              .map((x) => Number(x.valid_Data_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumTrueContact: territories[territory]
+              .filter((x) => x.true_Contact_count)
+              .map((x) => Number(x.true_Contact_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumNotContacted: territories[territory]
+              .filter((x) => x.not_Contacted_count)
+              .map((x) => Number(x.not_Contacted_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumNonSOB1: territories[territory]
+              .filter((x) => x.non_SOB1_count)
+              .map((x) => Number(x.non_SOB1_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumNonSOB2: territories[territory]
+              .filter((x) => x.non_SOB2_count)
+              .map((x) => Number(x.non_SOB2_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumextMSB: territories[territory]
+              .filter((x) => x.ext_MSB_count)
+              .map((x) => Number(x.ext_MSB_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumFalseContact: territories[territory]
+              .filter((x) => x.false_Contact_count)
+              .map((x) => Number(x.false_Contact_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumNoFreeSample: territories[territory]
+              .filter((x) => x.no_Free_Sample)
+              .map((x) => Number(x.no_Free_Sample))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumLessFreeSample: territories[territory]
+              .filter((x) => x.less_Free_Sample)
+              .map((x) => Number(x.less_Free_Sample))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumTeaSnaks: territories[territory]
+              .filter((x) => x.teaSnaks)
+              .map((x) => Number(x.teaSnaks))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumRetention: territories[territory]
+              .filter((x) => x.retention)
+              .map((x) => Number(x.retention))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+          });
+          grandConnectedCall += territories[territory]
+            .filter((x) => x.connected_Call_count)
+            .map((x) => Number(x.connected_Call_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandTarget += territories[territory]
+            .filter((x) => x.target)
+            .map((x) => Number(x.target))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          (grandValiddata += territories[territory]
+            .filter((x) => x.valid_Data_count)
+            .map((x) => Number(x.valid_Data_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0)),
+            (grandTrueContact += territories[territory]
+              .filter((x) => x.true_Contact_count)
+              .map((x) => Number(x.true_Contact_count))
+              .reduce((sum, cv) => (sum += Number(cv)), 0));
+          grandNotContacted += territories[territory]
+            .filter((x) => x.not_Contacted_count)
+            .map((x) => Number(x.not_Contacted_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandNonSOB1 += territories[territory]
+            .filter((x) => x.non_SOB1_count)
+            .map((x) => Number(x.non_SOB1_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandNonSOB2 += territories[territory]
+            .filter((x) => x.non_SOB2_count)
+            .map((x) => Number(x.non_SOB2_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandextMSB += territories[territory]
+            .filter((x) => x.ext_MSB_count)
+            .map((x) => Number(x.ext_MSB_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandFalseContact += territories[territory]
+            .filter((x) => x.false_Contact_count)
+            .map((x) => Number(x.false_Contact_count))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandNoFreeSample += territories[territory]
+            .filter((x) => x.no_Free_Sample)
+            .map((x) => Number(x.no_Free_Sample))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandLessFreeSample += territories[territory]
+            .filter((x) => x.less_Free_Sample)
+            .map((x) => Number(x.less_Free_Sample))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandTeaSnaks += territories[territory]
+            .filter((x) => x.teaSnaks)
+            .map((x) => Number(x.teaSnaks))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandRetention += territories[territory]
+            .filter((x) => x.retention)
+            .map((x) => Number(x.retention))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+        }
+        console.log("Total Data", data.length);
+        console.log("Unique Users", territoryResult.length);
+        territoryResult = territoryResult.map((r) => {
+          return {
+            ...r,
+            grandConnectedCall,
+            grandTarget,
+            grandValiddata,
+            grandTrueContact,
+            grandNotContacted,
+            grandNonSOB1,
+            grandNonSOB2,
+            grandextMSB,
+            grandFalseContact,
+            grandNoFreeSample,
+            grandLessFreeSample,
+            grandTeaSnaks,
+            grandRetention,
+          };
+        });
+        insertResult(territoryResult);
+      } catch (e) {
+        console.log(e.message);
+      }
+    }
+
+    async function insertResult(data) {
+      try {
+        await territoryReport.remove({});
+        await territoryReport.insertMany(JSON.parse(JSON.stringify(data)));
+        console.log("Inserted");
+        res.send(`
+        <h1>Territorry Successfully.</h1>
+        <h3> Please Check your DB</h3>
+        `);
+      } catch (e) {
+        res.send("Error", e.message);
+      }
+    }
+    analyzeData();
+  });
+  app.get("/reportTable", (req, res) => {
+    questionResult.find({}).toArray((err, reportTable) => {
+      res.send(reportTable);
+    });
+  });
+  app.get("/territoryReports", (req, res) => {
+    territoryReport.find({}).toArray((err, territoryReports) => {
+      res.send(territoryReports);
     });
   });
   //Connected Call Updated to Database
@@ -554,8 +865,8 @@ client.connect((err) => {
       }
       console.log("DONE ================== ");
 
-      res.status(200).json({
-        message: "true",
+      res.send({
+        status: true,
       });
     } catch (error) {
       console.log(error);
@@ -868,6 +1179,7 @@ client.connect((err) => {
   //Update Verified True Contact
   app.patch("/updateVerifiedTrueContact", async (req, res) => {
     const verifyTrueContact = req.body;
+    console.log(verifyTrueContact);
     let buldOperation = [];
     let counter = 0;
 
