@@ -461,7 +461,7 @@ client.connect((err) => {
               .length,
             teaSnaks: users[user].filter((x) => x.teaSnaks === 1).length,
             retention: users[user].filter((x) => x.retention === 1).length,
-            target: 50,
+            target: 25,
           });
           valid_total += users[user].filter(
             (x) => x.data_status === "Valid_Data"
@@ -789,7 +789,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -828,7 +828,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -865,8 +865,8 @@ client.connect((err) => {
       }
       console.log("DONE ================== ");
 
-      res.send({
-        status: true,
+      res.status(200).json({
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -904,7 +904,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -942,7 +942,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -980,7 +980,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1018,7 +1018,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1056,7 +1056,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1094,7 +1094,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1132,7 +1132,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1170,7 +1170,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1209,7 +1209,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1247,7 +1247,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1285,7 +1285,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1323,7 +1323,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
@@ -1361,7 +1361,7 @@ client.connect((err) => {
       console.log("DONE ================== ");
 
       res.status(200).json({
-        message: "true",
+        message: true,
       });
     } catch (error) {
       console.log(error);
