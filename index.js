@@ -74,6 +74,15 @@ client.connect((err) => {
               },
               {
                 $or: [
+                  { q4: "4 days" },
+                  { q4: "5 days" },
+                  { q4: "6 days" },
+                  { q4: "7 days" },
+                  { q4: "8 days" },
+                  { q4: "9 days" },
+                  { q4: "10 days" },
+                  { q4: "11 days" },
+                  { q4: "12 days" },
                   { q4: "13 days" },
                   { q4: "14 days" },
                   { q4: "15 days" },
@@ -106,20 +115,7 @@ client.connect((err) => {
                 $or: [{ q3: "Others" }, { q3: "Marise" }],
               },
               {
-                $or: [
-                  { q4: "1 day" },
-                  { q4: "2 days" },
-                  { q4: "3 days" },
-                  { q4: "4 days" },
-                  { q4: "5 days" },
-                  { q4: "6 days" },
-                  { q4: "7 days" },
-                  { q4: "8 days" },
-                  { q4: "9 days" },
-                  { q4: "10 days" },
-                  { q4: "11 days" },
-                  { q4: "12 days" },
-                ],
+                $or: [{ q4: "1 day" }, { q4: "2 days" }, { q4: "3 days" }],
               },
               {
                 $or: [{ q5: "Others" }],
@@ -143,6 +139,15 @@ client.connect((err) => {
               },
               {
                 $or: [
+                  { q4: "4 days" },
+                  { q4: "5 days" },
+                  { q4: "6 days" },
+                  { q4: "7 days" },
+                  { q4: "8 days" },
+                  { q4: "9 days" },
+                  { q4: "10 days" },
+                  { q4: "11 days" },
+                  { q4: "12 days" },
                   { q4: "13 days" },
                   { q4: "14 days" },
                   { q4: "15 days" },
@@ -376,20 +381,7 @@ client.connect((err) => {
                 $or: [{ q3: "Marise" }],
               },
               {
-                $or: [
-                  { q4: "1 day" },
-                  { q4: "2 days" },
-                  { q4: "3 days" },
-                  { q4: "4 days" },
-                  { q4: "5 days" },
-                  { q4: "6 days" },
-                  { q4: "7 days" },
-                  { q4: "8 days" },
-                  { q4: "9 days" },
-                  { q4: "10 days" },
-                  { q4: "11 days" },
-                  { q4: "12 days" },
-                ],
+                $or: [{ q4: "1 day" }, { q4: "2 days" }, { q4: "3 days" }],
               },
               {
                 $or: [
