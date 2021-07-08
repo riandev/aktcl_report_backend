@@ -413,6 +413,7 @@ client.connect((err) => {
       res.send(finalReport);
     });
   });
+  // Generate TMR/TMS Report
   app.get("/analyze_import", async (req, res) => {
     async function analyzeData() {
       let result = [];
@@ -428,6 +429,7 @@ client.connect((err) => {
       let lessFreeSample_total = 0;
       let teaSnaks_total = 0;
       let retention_total = 0;
+      let grandAvgExpense = 0;
       try {
         let data = await finalReport.find({}).toArray();
         let users = _.groupBy(JSON.parse(JSON.stringify(data)), function (d) {
@@ -438,6 +440,7 @@ client.connect((err) => {
             userId: user,
             userName: users[user][0].TM_NAME,
             teritory: users[user][0].TERITORY_NAME,
+            avgExpense: users[user][0].avgSalary,
             valid_Data_count: users[user].filter(
               (x) => x.data_status === "Valid_Data"
             ).length,
@@ -462,6 +465,11 @@ client.connect((err) => {
             teaSnaks: users[user].filter((x) => x.teaSnaks === 1).length,
             retention: users[user].filter((x) => x.retention === 1).length,
             target: 25,
+            targetTrueContact: 15,
+            sumAvgExpense: users[user]
+              .filter((x) => x.avgSalary)
+              .map((x) => Number(x.avgSalary))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
           });
           valid_total += users[user].filter(
             (x) => x.data_status === "Valid_Data"
@@ -491,6 +499,10 @@ client.connect((err) => {
           retention_total += users[user].filter(
             (x) => x.retention === 1
           ).length;
+          grandAvgExpense += users[user]
+            .filter((x) => x.avgSalary)
+            .map((x) => Number(x.avgSalary))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
         }
         console.log("Total Data", data.length);
         console.log("Unique Users", result);
@@ -509,6 +521,7 @@ client.connect((err) => {
             lessFreeSample_total,
             teaSnaks_total,
             retention_total,
+            grandAvgExpense,
           };
         });
         insertResult(result);
@@ -519,7 +532,7 @@ client.connect((err) => {
 
     async function insertResult(data) {
       try {
-        await questionResult.remove({});
+        await questionResult.deleteMany({});
         await questionResult.insertMany(JSON.parse(JSON.stringify(data)));
         console.log("Inserted");
         res.send(`
@@ -550,6 +563,8 @@ client.connect((err) => {
       let grandLessFreeSample = 0;
       let grandTeaSnaks = 0;
       let grandRetention = 0;
+      let grandTrueTarget = 0;
+      let grandAvgTerritoryExpense = 0;
       try {
         let data = await questionResult.find({}).toArray();
         let territories = _.groupBy(
@@ -613,6 +628,16 @@ client.connect((err) => {
               .filter((x) => x.retention)
               .map((x) => Number(x.retention))
               .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumTrueTarget: territories[territory]
+              .filter((x) => x.targetTrueContact)
+              .map((x) => Number(x.targetTrueContact))
+              .reduce((sum, cv) => (sum += Number(cv)), 0),
+            sumAvgTerritoryExpense:
+              territories[territory]
+                .filter((x) => x.avgExpense)
+                .map((x) => Number(x.avgExpense))
+                .reduce((sum, cv) => (sum += Number(cv)), 0) /
+              territories[territory].filter((x) => x.avgExpense).length,
           });
           grandConnectedCall += territories[territory]
             .filter((x) => x.connected_Call_count)
@@ -666,6 +691,16 @@ client.connect((err) => {
             .filter((x) => x.retention)
             .map((x) => Number(x.retention))
             .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandTrueTarget += territories[territory]
+            .filter((x) => x.targetTrueContact)
+            .map((x) => Number(x.targetTrueContact))
+            .reduce((sum, cv) => (sum += Number(cv)), 0);
+          grandAvgTerritoryExpense +=
+            territories[territory]
+              .filter((x) => x.avgExpense)
+              .map((x) => Number(x.avgExpense))
+              .reduce((sum, cv) => (sum += Number(cv)), 0) /
+            territories[territory].filter((x) => x.avgExpense).length;
         }
         console.log("Total Data", data.length);
         console.log("Unique Users", territoryResult.length);
@@ -685,6 +720,8 @@ client.connect((err) => {
             grandLessFreeSample,
             grandTeaSnaks,
             grandRetention,
+            grandTrueTarget,
+            grandAvgTerritoryExpense,
           };
         });
         insertResult(territoryResult);
@@ -695,7 +732,7 @@ client.connect((err) => {
 
     async function insertResult(data) {
       try {
-        await territoryReport.remove({});
+        await territoryReport.deleteMany({});
         await territoryReport.insertMany(JSON.parse(JSON.stringify(data)));
         console.log("Inserted");
         res.send(`
